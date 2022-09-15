@@ -14,7 +14,6 @@ func TestParse(t *testing.T) {
 		t.Fatalf("failed to parse nlctrl YAML: %v", err)
 	}
 
-	// It's a start!
 	if diff := cmp.Diff(nlctrl(), s); diff != "" {
 		t.Fatalf("unexpected Spec (-want +got):\n%s", diff)
 	}
