@@ -163,10 +163,11 @@ func (g *generator) method(op Operation, dod doOrDump) {
 	g.encoder(op, oas.Request)
 
 	// Use packed arguments in a genetlink message body to execute a command.
+	//
+	// TODO(mdlayher): do all families let you omit a version number here?
 	g.pf("msg := genetlink.Message{")
 	g.pf("	Header: genetlink.Header{")
 	g.pf("		Command: %s,", unixConst(g.s.Operations.NamePrefix+op.Name))
-	g.pf("		Version: 1,") // TODO!
 	g.pf("	},")
 	g.pf("	Data: b,")
 	g.pf("}")

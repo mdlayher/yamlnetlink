@@ -49,6 +49,7 @@ func TestGenerate(t *testing.T) {
 
 	var got stdout
 	if err := json.Unmarshal(out, &got); err != nil {
+		t.Logf("stdout: %s", string(out))
 		t.Fatalf("failed to unmarshal family: %v", err)
 	}
 

@@ -72,7 +72,6 @@ func (c *Conn) DoGetfamily(req DoGetfamilyRequest) (*DoGetfamilyReply, error) {
 	msg := genetlink.Message{
 		Header: genetlink.Header{
 			Command: unix.CTRL_CMD_GETFAMILY,
-			Version: 1,
 		},
 		Data: b,
 	}
@@ -145,7 +144,6 @@ func (c *Conn) DumpGetfamily() ([]*DumpGetfamilyReply, error) {
 	msg := genetlink.Message{
 		Header: genetlink.Header{
 			Command: unix.CTRL_CMD_GETFAMILY,
-			Version: 1,
 		},
 		Data: b,
 	}
@@ -231,7 +229,6 @@ func (c *Conn) DumpGetpolicy(req DumpGetpolicyRequest) ([]*DumpGetpolicyReply, e
 	msg := genetlink.Message{
 		Header: genetlink.Header{
 			Command: unix.CTRL_CMD_GETPOLICY,
-			Version: 1,
 		},
 		Data: b,
 	}
