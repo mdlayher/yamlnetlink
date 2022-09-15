@@ -16,6 +16,7 @@ import (
 // A Conn is a connection to netlink family "nlctrl".
 type Conn struct {
 	c *genetlink.Conn
+	f genetlink.Family
 }
 
 // Dial opens a Conn for netlink family "nlctrl". Any options are passed directly
@@ -26,7 +27,12 @@ func Dial(cfg *netlink.Config) (*Conn, error) {
 		return nil, err
 	}
 
-	return &Conn{c: c}, nil
+	f, err := c.GetFamily("nlctrl")
+	if err != nil {
+		return nil, err
+	}
+
+	return &Conn{c: c, f: f}, nil
 }
 
 // Close closes the Conn's underlying netlink connection.
@@ -72,11 +78,12 @@ func (c *Conn) DoGetfamily(req DoGetfamilyRequest) (*DoGetfamilyReply, error) {
 	msg := genetlink.Message{
 		Header: genetlink.Header{
 			Command: unix.CTRL_CMD_GETFAMILY,
+			Version: c.f.Version,
 		},
 		Data: b,
 	}
 
-	msgs, err := c.c.Execute(msg, unix.GENL_ID_CTRL, netlink.Request)
+	msgs, err := c.c.Execute(msg, c.f.ID, netlink.Request)
 	if err != nil {
 		return nil, err
 	}
@@ -144,11 +151,12 @@ func (c *Conn) DumpGetfamily() ([]*DumpGetfamilyReply, error) {
 	msg := genetlink.Message{
 		Header: genetlink.Header{
 			Command: unix.CTRL_CMD_GETFAMILY,
+			Version: c.f.Version,
 		},
 		Data: b,
 	}
 
-	msgs, err := c.c.Execute(msg, unix.GENL_ID_CTRL, netlink.Request|netlink.Dump)
+	msgs, err := c.c.Execute(msg, c.f.ID, netlink.Request|netlink.Dump)
 	if err != nil {
 		return nil, err
 	}
@@ -229,11 +237,12 @@ func (c *Conn) DumpGetpolicy(req DumpGetpolicyRequest) ([]*DumpGetpolicyReply, e
 	msg := genetlink.Message{
 		Header: genetlink.Header{
 			Command: unix.CTRL_CMD_GETPOLICY,
+			Version: c.f.Version,
 		},
 		Data: b,
 	}
 
-	msgs, err := c.c.Execute(msg, unix.GENL_ID_CTRL, netlink.Request|netlink.Dump)
+	msgs, err := c.c.Execute(msg, c.f.ID, netlink.Request|netlink.Dump)
 	if err != nil {
 		return nil, err
 	}

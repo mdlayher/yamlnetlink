@@ -88,6 +88,7 @@ func (g *generator) conn() {
 	g.pf("// A Conn is a connection to netlink family %q.", g.s.Name)
 	g.pf("type Conn struct {")
 	g.pf("	c *genetlink.Conn")
+	g.pf("	f genetlink.Family")
 	g.pf("}")
 	g.pf("")
 
@@ -99,7 +100,12 @@ func (g *generator) conn() {
 	g.pf("		return nil, err")
 	g.pf("	}")
 	g.pf("")
-	g.pf("	return &Conn{c: c}, nil")
+	g.pf(`	f, err := c.GetFamily("%s")`, g.s.Name)
+	g.pf("	if err != nil {")
+	g.pf("		return nil, err")
+	g.pf("	}")
+	g.pf("")
+	g.pf("	return &Conn{c: c, f: f}, nil")
 	g.pf("}")
 	g.pf("")
 
@@ -163,18 +169,16 @@ func (g *generator) method(op Operation, dod doOrDump) {
 	g.encoder(op, oas.Request)
 
 	// Use packed arguments in a genetlink message body to execute a command.
-	//
-	// TODO(mdlayher): do all families let you omit a version number here?
 	g.pf("msg := genetlink.Message{")
 	g.pf("	Header: genetlink.Header{")
 	g.pf("		Command: %s,", unixConst(g.s.Operations.NamePrefix+op.Name))
+	g.pf("		Version: c.f.Version,")
 	g.pf("	},")
 	g.pf("	Data: b,")
 	g.pf("}")
 	g.pf("")
 
-	// TODO: where does ID come from?
-	g.pf("msgs, err := c.c.Execute(msg, unix.GENL_ID_CTRL, %s)", flags)
+	g.pf("msgs, err := c.c.Execute(msg, c.f.ID, %s)", flags)
 	g.pf("if err != nil {")
 	g.pf("	return nil, err")
 	g.pf("}")
