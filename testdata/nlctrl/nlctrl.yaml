@@ -1,0 +1,183 @@
+name: nlctrl
+
+protocol: genetlink-legacy
+
+description: |
+  Generic netlink control protocol. Interface to query information about
+  generic netlink families registered in the kernel - their names, ids,
+  accepted messages and attributes.
+
+uapi-header: linux/genetlink.h
+
+attribute-sets:
+  -
+    name: main
+    name-prefix: ctrl-attr-
+    attributes:
+      -
+        name: family-id
+        type: u16
+        description: |
+            Numerical identifier of the family.
+      -
+        name: family-name
+        type: nul-string
+        len: GENL_NAMSIZ - 1
+        description: |
+            String identifier of the family. Guaranteed to be unique.
+      -
+        name: version
+        type: u32
+      -
+        name: hdrsize
+        type: u32
+      -
+        name: maxattr
+        type: u32
+      -
+        name: ops
+        type: array-nest
+        nested-attributes: operation
+      -
+        name: mcast-groups
+        type: array-nest
+        nested-attributes: mcast-group
+      -
+        name: op
+        type: u32
+      -
+        name: op-policy
+        type: nest-type-value
+        type-value: [ cmd ]
+        nested-attributes: policy
+      -
+        name: policy
+        type: nest-type-value
+        type-value: [ current-policy-idx, attr-idx ]
+        nested-attributes: nl-policy
+  -
+    name: operation
+    name-prefix: ctrl-attr-op-
+    attributes:
+      -
+        name: id
+        type: u32
+      -
+        name: flags
+        type: u32
+  -
+    name: mcast-group
+    name-prefix: ctrl-attr-mcast-grp-
+    attributes:
+      -
+        name: id
+        type: u32
+      -
+        name: name
+        type: nul-string
+        len: GENL_NAMSIZ - 1
+  -
+    name: policy
+    name-prefix: ctrl-attr-policy-
+    attributes:
+      -
+        name: do
+        type: u32
+      -
+        name: dump
+        type: u32
+  -
+    name: nl-policy
+    name-prefix: nl-policy-type-attr-
+    attributes:
+      -
+        name: type
+        type: u32
+      -
+        name: min-value-u
+        type: u64
+      -
+        name: max-value-u
+        type: u64
+      -
+        name: min-value-s
+        type: s64
+      -
+        name: max-value-s
+        type: s64
+      -
+        name: mask
+        type: u64
+      -
+        name: min-length
+        type: u32
+      -
+        name: max-length
+        type: u32
+      -
+        name: policy-idx
+        type: u32
+      -
+        name: policy-maxtype
+        type: u32
+      -
+        name: bitfield32-mask
+        type: u32
+
+operations:
+  name-prefix: ctrl-cmd-
+  list:
+    -
+      name: getfamily
+      description: Get information about genetlink family.
+      attribute-set: main
+      dont-validate: [ strict, dump ]
+
+      do:
+        request:
+          attributes:
+            - family-id
+            - family-name
+        reply: &getfamily-do-reply
+          attributes:
+            - family-id
+            - family-name
+            - version
+            - hdrsize
+            - maxattr
+            - ops
+            - mcast-groups
+      dump:
+        reply: *getfamily-do-reply
+    -
+      name: newfamily
+      description: Notification for new families being registered.
+      notify: getfamily
+    -
+      name: delfamily
+      description: Notification for families being unregistered.
+      notify: getfamily
+    -
+      name: newmcast-grp
+      description: Notification for new multicast groups.
+      notify: getfamily
+    -
+      name: delmcast-grp
+      description: Notification for deleted multicast groups.
+      notify: getfamily
+    -
+      name: getpolicy
+      description: Get attribute policy for a genetlink family.
+      attribute-set: main
+
+      dump:
+        request:
+          attributes:
+            - family-id
+            - family-name
+            - op
+        reply:
+          attributes:
+            - family-id
+            - op-policy
+            - policy
