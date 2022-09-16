@@ -15,9 +15,15 @@ import (
 func TestGenerateNlctrl(t *testing.T) {
 	out := generate(t, "nlctrl")
 
+	type mcastGroup struct {
+		ID   uint32 `json:"Id"`
+		Name string `json:"Name"`
+	}
+
 	type family struct {
-		ID   uint16 `json:"FamilyId"`
-		Name string `json:"FamilyName"`
+		ID          uint16       `json:"FamilyId"`
+		Name        string       `json:"FamilyName"`
+		McastGroups []mcastGroup `json:"McastGroups"`
 	}
 
 	type stdout struct {
@@ -32,7 +38,16 @@ func TestGenerateNlctrl(t *testing.T) {
 	}
 
 	// nlctrl always occupies the same IDs.
-	if diff := cmp.Diff(family{ID: 16, Name: "nlctrl"}, got.Family); diff != "" {
+	want := family{
+		ID:   16,
+		Name: "nlctrl",
+		McastGroups: []mcastGroup{{
+			ID:   16,
+			Name: "notify",
+		}},
+	}
+
+	if diff := cmp.Diff(want, got.Family); diff != "" {
 		t.Fatalf("unexpected generic netlink family (-want +got):\n%s", diff)
 	}
 

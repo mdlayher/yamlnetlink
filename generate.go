@@ -452,9 +452,9 @@ func (g *generator) decoder(op Operation, dod doOrDump) {
 	g.pf("	return nil, err")
 	g.pf("}")
 	g.pf("")
-	g.pf("var reply %s", name)
-	g.pf("for ad.Next() {")
-	g.pf("	switch ad.Type() {")
+
+	const receiver = "reply"
+	g.pf("var %s %s", receiver, name)
 
 	var oas OperationAttributesList
 	switch dod {
@@ -464,48 +464,22 @@ func (g *generator) decoder(op Operation, dod doOrDump) {
 		oas = op.Dump.Reply
 	}
 
-	// Begin generating switch cases.
-	for _, a := range g.attrs(op.AttributeSet, oas.Attributes) {
-		// Use the unix package const for each type, and field to fill in the
-		// arguments that are non-zero.
-		var (
-			typ = unixConst(g.attrPrefix(op.AttributeSet) + a.Name)
-			f   = "reply." + camelCase(a.Name)
-		)
+	g.pf("for ad.Next() {")
+	g.pf("	switch ad.Type() {")
 
-		// mkUint generates a uint* case.
-		mkUint := func(bits int) { g.pf("%s = ad.Uint%d()", f, bits) }
-
-		g.pf("case %s:", typ)
-		switch a.Type {
-		case "u8":
-			mkUint(8)
-		case "u16":
-			mkUint(16)
-		case "u32":
-			mkUint(32)
-		case "u64":
-			mkUint(64)
-		case "nul-string":
-			g.pf("%s = ad.String()", f)
-		case "array-nest":
-			typ = "[]" + camelCase(a.NestedAttributes)
-			g.pf("	// TODO: field %q, type %q", f, typ)
-		default:
-			g.pf("	// TODO: field %q, type %q", f, a.Type)
-		}
-	}
+	// Begin generating switch cases to decode into receiver.
+	g.decoderCases(receiver, op.AttributeSet, g.attrs(op.AttributeSet, oas.Attributes))
 
 	g.pf("	}")
 	g.pf("}")
 	g.pf("")
 
-	// Make sure to check for decoder errors for reach reply.
+	// Make sure to check for decoder errors at the top level.
 	g.pf("if err := ad.Err(); err != nil {")
 	g.pf("	return nil, err")
 	g.pf("}")
 	g.pf("")
-	g.pf("replies = append(replies, &reply)")
+	g.pf("replies = append(replies, &%s)", receiver)
 	g.pf("}")
 	g.pf("")
 
@@ -520,6 +494,63 @@ func (g *generator) decoder(op Operation, dod doOrDump) {
 		g.pf("return replies[0], nil")
 	case dumpOp:
 		g.pf("return replies, nil")
+	}
+}
+
+func (g *generator) decoderCases(receiver, aset string, attrs []Attribute) {
+	// Begin generating switch cases.
+	for _, a := range attrs {
+		// Use the unix package const for each type, and field to fill in the
+		// arguments that are non-zero.
+		var (
+			typ   = unixConst(g.attrPrefix(aset) + a.Name)
+			field = receiver + "." + camelCase(a.Name)
+		)
+
+		// mkUint generates a uint* case.
+		mkUint := func(bits int) { g.pf("%s = ad.Uint%d()", field, bits) }
+
+		g.pf("case %s:", typ)
+		switch a.Type {
+		case "u8":
+			mkUint(8)
+		case "u16":
+			mkUint(16)
+		case "u32":
+			mkUint(32)
+		case "u64":
+			mkUint(64)
+		case "nul-string":
+			g.pf("%s = ad.String()", field)
+		case "array-nest":
+			// A netlink array is multiply nested containing the same object at
+			// each index. For now we have to give the innermost decoder the
+			// same name "ad" since the switch cases are hardcoded.
+			const tmp = "nest"
+
+			g.pf("ad.Nested(func(arr *netlink.AttributeDecoder) error {")
+			g.pf("	for arr.Next() {")
+			g.pf("		arr.Nested(func(ad *netlink.AttributeDecoder) error {")
+			g.pf("			var %s %s", tmp, camelCase(a.NestedAttributes))
+			g.pf("			for ad.Next() {")
+			g.pf("				switch ad.Type() {")
+
+			g.decoderCases(tmp, a.NestedAttributes, g.attrs(a.NestedAttributes, nil))
+
+			g.pf("				}")
+			g.pf("			}")
+			g.pf("")
+			g.pf("			%s = append(%s, %s)", field, field, tmp)
+			g.pf("			return nil")
+			g.pf("		})")
+			g.pf("")
+			g.pf("	}")
+			g.pf("")
+			g.pf("return nil")
+			g.pf("})")
+		default:
+			g.pf("	// TODO: field %q, type %q", field, a.Type)
+		}
 	}
 }
 
