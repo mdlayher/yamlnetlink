@@ -73,7 +73,20 @@ func (c *Conn) DoChannelsGet(req DoChannelsGetRequest) (*DoChannelsGetReply, err
 		for ad.Next() {
 			switch ad.Type() {
 			case unix.ETHTOOL_A_CHANNELS_HEADER:
-				// TODO: field "reply.Header", type "nest"
+				ad.Nested(func(ad *netlink.AttributeDecoder) error {
+					for ad.Next() {
+						switch ad.Type() {
+						case unix.ETHTOOL_A_HEADER_DEV_INDEX:
+							reply.Header.DevIndex = ad.Uint32()
+						case unix.ETHTOOL_A_HEADER_DEV_NAME:
+							reply.Header.DevName = ad.String()
+						case unix.ETHTOOL_A_HEADER_FLAGS:
+							reply.Header.Flags = ad.Uint32()
+						}
+					}
+
+					return nil
+				})
 			case unix.ETHTOOL_A_CHANNELS_RX_MAX:
 				reply.RxMax = ad.Uint32()
 			case unix.ETHTOOL_A_CHANNELS_TX_MAX:
@@ -137,7 +150,20 @@ func (c *Conn) DumpChannelsGet() ([]*DumpChannelsGetReply, error) {
 		for ad.Next() {
 			switch ad.Type() {
 			case unix.ETHTOOL_A_CHANNELS_HEADER:
-				// TODO: field "reply.Header", type "nest"
+				ad.Nested(func(ad *netlink.AttributeDecoder) error {
+					for ad.Next() {
+						switch ad.Type() {
+						case unix.ETHTOOL_A_HEADER_DEV_INDEX:
+							reply.Header.DevIndex = ad.Uint32()
+						case unix.ETHTOOL_A_HEADER_DEV_NAME:
+							reply.Header.DevName = ad.String()
+						case unix.ETHTOOL_A_HEADER_FLAGS:
+							reply.Header.Flags = ad.Uint32()
+						}
+					}
+
+					return nil
+				})
 			case unix.ETHTOOL_A_CHANNELS_RX_MAX:
 				reply.RxMax = ad.Uint32()
 			case unix.ETHTOOL_A_CHANNELS_TX_MAX:
@@ -169,12 +195,19 @@ func (c *Conn) DumpChannelsGet() ([]*DumpChannelsGetReply, error) {
 
 // DoChannelsGetRequest is used with the DoChannelsGet method.
 type DoChannelsGetRequest struct {
-	// TODO: field "Header", type "nest"
+	Header Header
+}
+
+// Header contains nested netlink attributes.
+type Header struct {
+	DevIndex uint32
+	DevName  string
+	Flags    uint32
 }
 
 // DoChannelsGetReply is used with the DoChannelsGet method.
 type DoChannelsGetReply struct {
-	// TODO: field "Header", type "nest"
+	Header        Header
 	RxMax         uint32
 	TxMax         uint32
 	OtherMax      uint32
@@ -187,7 +220,7 @@ type DoChannelsGetReply struct {
 
 // DumpChannelsGetReply is used with the DumpChannelsGet method.
 type DumpChannelsGetReply struct {
-	// TODO: field "Header", type "nest"
+	Header        Header
 	RxMax         uint32
 	TxMax         uint32
 	OtherMax      uint32
@@ -236,7 +269,7 @@ func (c *Conn) DoChannelsSet(req DoChannelsSetRequest) error {
 
 // DoChannelsSetRequest is used with the DoChannelsSet method.
 type DoChannelsSetRequest struct {
-	// TODO: field "Header", type "nest"
+	Header        Header
 	RxCount       uint32
 	TxCount       uint32
 	OtherCount    uint32

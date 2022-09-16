@@ -48,6 +48,9 @@ type generator struct {
 
 	// An index of attribute set names to AttributeSets.
 	asIndex map[string]AttributeSet
+
+	// A set of structs which have already been generated.
+	seenStructs map[string]struct{}
 }
 
 // newGenerator creates a generator which outputs to w.
@@ -58,9 +61,10 @@ func newGenerator(s *Spec, w io.Writer) *generator {
 	}
 
 	return &generator{
-		s:       s,
-		w:       w,
-		asIndex: asIndex,
+		s:           s,
+		w:           w,
+		asIndex:     asIndex,
+		seenStructs: make(map[string]struct{}),
 	}
 }
 
@@ -215,16 +219,10 @@ func (g *generator) method(op Operation, dod doOrDump) {
 
 // structs generates code for struct definitions.
 func (g *generator) structs(gss []gstruct) {
-	var (
-		// Don't duplicate structs that were previously generated.
-		seen = make(map[string]struct{})
-
-		// walk recursively walks a gstruct and its nested structs.
-		walk func(gs gstruct)
-	)
-
+	// walk recursively walks a gstruct and its nested structs.
+	var walk func(gs gstruct)
 	walk = func(gs gstruct) {
-		if _, ok := seen[gs.Name]; gs.Name == "" || ok {
+		if _, ok := g.seenStructs[gs.Name]; gs.Name == "" || ok {
 			// Already seen or we want to skip generating a zero struct.
 			return
 		}
@@ -248,7 +246,7 @@ func (g *generator) structs(gss []gstruct) {
 		g.pf("")
 
 		// We've generated this one, walk its children.
-		seen[gs.Name] = struct{}{}
+		g.seenStructs[gs.Name] = struct{}{}
 		for _, ngs := range gs.Nested {
 			walk(ngs)
 		}
@@ -329,8 +327,8 @@ func (g *generator) walkAttributes(attrs []Attribute) ([]field, []gstruct) {
 
 	for _, a := range attrs {
 		var (
-			typ  string
-			todo bool
+			typ          string
+			nested, todo bool
 		)
 
 		switch a.Type {
@@ -344,11 +342,20 @@ func (g *generator) walkAttributes(attrs []Attribute) ([]field, []gstruct) {
 			typ = "uint64"
 		case "nul-string":
 			typ = "string"
+		case "nest":
+			typ = camelCase(a.NestedAttributes)
+			nested = true
 		case "array-nest":
-			// For arrays we generate an array of a new struct type. Walk the
-			// attribute set for this array and generate nested structs as
-			// needed.
 			typ = "[]" + camelCase(a.NestedAttributes)
+			nested = true
+		default:
+			typ = a.Type
+			todo = true
+		}
+
+		if nested {
+			// For nested types, we must walk the attribute set of the nested
+			// type and generate structs and fields as needed.
 			gs := gstruct{Name: camelCase(a.NestedAttributes)}
 
 			if a.Description != "" {
@@ -361,9 +368,6 @@ func (g *generator) walkAttributes(attrs []Attribute) ([]field, []gstruct) {
 			gs.Fields, gs.Nested = g.walkAttributes(g.attrs(a.NestedAttributes, nil))
 
 			gss = append(gss, gs)
-		default:
-			typ = a.Type
-			todo = true
 		}
 
 		fields = append(fields, field{
@@ -522,6 +526,22 @@ func (g *generator) decoderCases(receiver, aset string, attrs []Attribute) {
 			mkUint(64)
 		case "nul-string":
 			g.pf("%s = ad.String()", field)
+		case "nest":
+			g.pf("ad.Nested(func(ad *netlink.AttributeDecoder) error {")
+			g.pf("	for ad.Next() {")
+			g.pf("		switch ad.Type() {")
+
+			g.decoderCases(
+				receiver+"."+camelCase(a.Name),
+				a.NestedAttributes,
+				g.attrs(a.NestedAttributes, nil),
+			)
+
+			g.pf("		}")
+			g.pf("	}")
+			g.pf("")
+			g.pf("	return nil")
+			g.pf("})")
 		case "array-nest":
 			// A netlink array is multiply nested containing the same object at
 			// each index. For now we have to give the innermost decoder the
@@ -535,7 +555,11 @@ func (g *generator) decoderCases(receiver, aset string, attrs []Attribute) {
 			g.pf("			for ad.Next() {")
 			g.pf("				switch ad.Type() {")
 
-			g.decoderCases(tmp, a.NestedAttributes, g.attrs(a.NestedAttributes, nil))
+			g.decoderCases(
+				tmp,
+				a.NestedAttributes,
+				g.attrs(a.NestedAttributes, nil),
+			)
 
 			g.pf("				}")
 			g.pf("			}")
