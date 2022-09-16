@@ -22,9 +22,10 @@ type Config struct {
 // a default Config is used.
 func Generate(s *Spec, cfg *Config) ([]byte, error) {
 	if cfg == nil {
-		cfg = &Config{
-			Package: s.Name,
-		}
+		cfg = &Config{}
+	}
+	if cfg.Package == "" {
+		cfg.Package = s.Name
 	}
 
 	var b bytes.Buffer
@@ -151,7 +152,7 @@ func (g *generator) method(op Operation, dod doOrDump) {
 	}
 
 	{
-		s := dod.String() + title(op.Name)
+		s := dod.String() + camelCase(op.Name)
 
 		g.pf("// %s wraps the %q operation:", s, op.Name)
 		g.pf("// %s", op.Description)
@@ -218,7 +219,7 @@ func (g *generator) structs(
 	}
 
 	var (
-		opName   = dod.String() + title(op.Name)
+		opName   = dod.String() + camelCase(op.Name)
 		fullName = opName + ror.String()
 	)
 
@@ -312,7 +313,7 @@ func (g *generator) encoder(op Operation, list OperationAttributesList) {
 // decoder generates a netlink attribute decoder loop to to iterate over reply
 // messages from a Do or Dump.
 func (g *generator) decoder(op Operation, dod doOrDump) {
-	name := dod.String() + title(op.Name) + doReply.String()
+	name := dod.String() + camelCase(op.Name) + doReply.String()
 
 	// Preallocate replies and range over all inputs, decoding each.
 	g.pf("replies := make([]*%s, 0, len(msgs))", name)

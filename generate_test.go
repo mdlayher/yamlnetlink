@@ -19,9 +19,7 @@ func TestGenerate(t *testing.T) {
 		t.Fatalf("failed to generate code: %v", err)
 	}
 
-	if err := os.Remove("testdata/nlctrl.go"); err != nil {
-		t.Fatalf("failed to remove generate code: %v", err)
-	}
+	_ = os.Remove("testdata/nlctrl.go")
 
 	if err := os.WriteFile("testdata/nlctrl.go", code, 0o644); err != nil {
 		t.Fatalf("failed to write generated code: %v", err)
