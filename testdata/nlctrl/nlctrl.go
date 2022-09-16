@@ -38,27 +38,6 @@ func Dial(cfg *netlink.Config) (*Conn, error) {
 // Close closes the Conn's underlying netlink connection.
 func (c *Conn) Close() error { return c.c.Close() }
 
-// DoGetfamilyRequest is used with the DoGetfamily method.
-type DoGetfamilyRequest struct {
-	// Numerical identifier of the family.
-	FamilyId uint16
-	// String identifier of the family. Guaranteed to be unique.
-	FamilyName string
-}
-
-// DoGetfamilyReply is used with the DoGetfamily method.
-type DoGetfamilyReply struct {
-	// Numerical identifier of the family.
-	FamilyId uint16
-	// String identifier of the family. Guaranteed to be unique.
-	FamilyName string
-	Version    uint32
-	Hdrsize    uint32
-	Maxattr    uint32
-	// TODO: field "Ops", type "array-nest"
-	// TODO: field "McastGroups", type "array-nest"
-}
-
 // DoGetfamily wraps the "getfamily" operation:
 // Get information about genetlink family.
 func (c *Conn) DoGetfamily(req DoGetfamilyRequest) (*DoGetfamilyReply, error) {
@@ -109,9 +88,9 @@ func (c *Conn) DoGetfamily(req DoGetfamilyRequest) (*DoGetfamilyReply, error) {
 			case unix.CTRL_ATTR_MAXATTR:
 				reply.Maxattr = ad.Uint32()
 			case unix.CTRL_ATTR_OPS:
-				// TODO: field "reply.Ops", type "array-nest"
+				// TODO: field "reply.Ops", type "[]Operation"
 			case unix.CTRL_ATTR_MCAST_GROUPS:
-				// TODO: field "reply.McastGroups", type "array-nest"
+				// TODO: field "reply.McastGroups", type "[]McastGroup"
 			}
 		}
 
@@ -127,19 +106,6 @@ func (c *Conn) DoGetfamily(req DoGetfamilyRequest) (*DoGetfamilyReply, error) {
 	}
 
 	return replies[0], nil
-}
-
-// DumpGetfamilyReply is used with the DumpGetfamily method.
-type DumpGetfamilyReply struct {
-	// Numerical identifier of the family.
-	FamilyId uint16
-	// String identifier of the family. Guaranteed to be unique.
-	FamilyName string
-	Version    uint32
-	Hdrsize    uint32
-	Maxattr    uint32
-	// TODO: field "Ops", type "array-nest"
-	// TODO: field "McastGroups", type "array-nest"
 }
 
 // DumpGetfamily wraps the "getfamily" operation:
@@ -182,9 +148,9 @@ func (c *Conn) DumpGetfamily() ([]*DumpGetfamilyReply, error) {
 			case unix.CTRL_ATTR_MAXATTR:
 				reply.Maxattr = ad.Uint32()
 			case unix.CTRL_ATTR_OPS:
-				// TODO: field "reply.Ops", type "array-nest"
+				// TODO: field "reply.Ops", type "[]Operation"
 			case unix.CTRL_ATTR_MCAST_GROUPS:
-				// TODO: field "reply.McastGroups", type "array-nest"
+				// TODO: field "reply.McastGroups", type "[]McastGroup"
 			}
 		}
 
@@ -198,21 +164,38 @@ func (c *Conn) DumpGetfamily() ([]*DumpGetfamilyReply, error) {
 	return replies, nil
 }
 
-// DumpGetpolicyRequest is used with the DumpGetpolicy method.
-type DumpGetpolicyRequest struct {
+// DoGetfamilyRequest is used with the DoGetfamily method.
+type DoGetfamilyRequest struct {
 	// Numerical identifier of the family.
 	FamilyId uint16
 	// String identifier of the family. Guaranteed to be unique.
 	FamilyName string
-	Op         uint32
 }
 
-// DumpGetpolicyReply is used with the DumpGetpolicy method.
-type DumpGetpolicyReply struct {
+// DoGetfamilyReply is used with the DoGetfamily method.
+type DoGetfamilyReply struct {
 	// Numerical identifier of the family.
 	FamilyId uint16
-	// TODO: field "OpPolicy", type "nest-type-value"
-	// TODO: field "Policy", type "nest-type-value"
+	// String identifier of the family. Guaranteed to be unique.
+	FamilyName string
+	Version    uint32
+	Hdrsize    uint32
+	Maxattr    uint32
+	// TODO: field "Ops", type "[]Operation"
+	// TODO: field "McastGroups", type "[]McastGroup"
+}
+
+// DumpGetfamilyReply is used with the DumpGetfamily method.
+type DumpGetfamilyReply struct {
+	// Numerical identifier of the family.
+	FamilyId uint16
+	// String identifier of the family. Guaranteed to be unique.
+	FamilyName string
+	Version    uint32
+	Hdrsize    uint32
+	Maxattr    uint32
+	// TODO: field "Ops", type "[]Operation"
+	// TODO: field "McastGroups", type "[]McastGroup"
 }
 
 // DumpGetpolicy wraps the "getpolicy" operation:
@@ -274,4 +257,21 @@ func (c *Conn) DumpGetpolicy(req DumpGetpolicyRequest) ([]*DumpGetpolicyReply, e
 	}
 
 	return replies, nil
+}
+
+// DumpGetpolicyRequest is used with the DumpGetpolicy method.
+type DumpGetpolicyRequest struct {
+	// Numerical identifier of the family.
+	FamilyId uint16
+	// String identifier of the family. Guaranteed to be unique.
+	FamilyName string
+	Op         uint32
+}
+
+// DumpGetpolicyReply is used with the DumpGetpolicy method.
+type DumpGetpolicyReply struct {
+	// Numerical identifier of the family.
+	FamilyId uint16
+	// TODO: field "OpPolicy", type "nest-type-value"
+	// TODO: field "Policy", type "nest-type-value"
 }

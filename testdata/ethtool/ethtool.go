@@ -38,24 +38,6 @@ func Dial(cfg *netlink.Config) (*Conn, error) {
 // Close closes the Conn's underlying netlink connection.
 func (c *Conn) Close() error { return c.c.Close() }
 
-// DoChannelsGetRequest is used with the DoChannelsGet method.
-type DoChannelsGetRequest struct {
-	// TODO: field "Header", type "nest"
-}
-
-// DoChannelsGetReply is used with the DoChannelsGet method.
-type DoChannelsGetReply struct {
-	// TODO: field "Header", type "nest"
-	RxMax         uint32
-	TxMax         uint32
-	OtherMax      uint32
-	CombinedMax   uint32
-	RxCount       uint32
-	TxCount       uint32
-	OtherCount    uint32
-	CombinedCount uint32
-}
-
 // DoChannelsGet wraps the "channels-get" operation:
 // Get current and max supported number of channels.
 func (c *Conn) DoChannelsGet(req DoChannelsGetRequest) (*DoChannelsGetReply, error) {
@@ -125,19 +107,6 @@ func (c *Conn) DoChannelsGet(req DoChannelsGetRequest) (*DoChannelsGetReply, err
 	return replies[0], nil
 }
 
-// DumpChannelsGetReply is used with the DumpChannelsGet method.
-type DumpChannelsGetReply struct {
-	// TODO: field "Header", type "nest"
-	RxMax         uint32
-	TxMax         uint32
-	OtherMax      uint32
-	CombinedMax   uint32
-	RxCount       uint32
-	TxCount       uint32
-	OtherCount    uint32
-	CombinedCount uint32
-}
-
 // DumpChannelsGet wraps the "channels-get" operation:
 // Get current and max supported number of channels.
 func (c *Conn) DumpChannelsGet() ([]*DumpChannelsGetReply, error) {
@@ -198,9 +167,31 @@ func (c *Conn) DumpChannelsGet() ([]*DumpChannelsGetReply, error) {
 	return replies, nil
 }
 
-// DoChannelsSetRequest is used with the DoChannelsSet method.
-type DoChannelsSetRequest struct {
+// DoChannelsGetRequest is used with the DoChannelsGet method.
+type DoChannelsGetRequest struct {
 	// TODO: field "Header", type "nest"
+}
+
+// DoChannelsGetReply is used with the DoChannelsGet method.
+type DoChannelsGetReply struct {
+	// TODO: field "Header", type "nest"
+	RxMax         uint32
+	TxMax         uint32
+	OtherMax      uint32
+	CombinedMax   uint32
+	RxCount       uint32
+	TxCount       uint32
+	OtherCount    uint32
+	CombinedCount uint32
+}
+
+// DumpChannelsGetReply is used with the DumpChannelsGet method.
+type DumpChannelsGetReply struct {
+	// TODO: field "Header", type "nest"
+	RxMax         uint32
+	TxMax         uint32
+	OtherMax      uint32
+	CombinedMax   uint32
 	RxCount       uint32
 	TxCount       uint32
 	OtherCount    uint32
@@ -241,4 +232,13 @@ func (c *Conn) DoChannelsSet(req DoChannelsSetRequest) error {
 	// No replies.
 	_, err = c.c.Execute(msg, c.f.ID, netlink.Request)
 	return err
+}
+
+// DoChannelsSetRequest is used with the DoChannelsSet method.
+type DoChannelsSetRequest struct {
+	// TODO: field "Header", type "nest"
+	RxCount       uint32
+	TxCount       uint32
+	OtherCount    uint32
+	CombinedCount uint32
 }

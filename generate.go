@@ -119,17 +119,20 @@ func (g *generator) conn() {
 func (g *generator) op(op Operation) {
 	// Only generate operations where either the request or response has at
 	// least one attribute.
+	var gss []gstruct
 	if len(op.Do.Request.Attributes) > 0 || len(op.Do.Reply.Attributes) > 0 {
-		g.structs(op, doOp, doRequest)
-		g.structs(op, doOp, doReply)
+		gss = append(gss, g.opStruct(op, doOp, doRequest)...)
+		gss = append(gss, g.opStruct(op, doOp, doReply)...)
 		g.method(op, doOp)
 	}
 
 	if len(op.Dump.Request.Attributes) > 0 || len(op.Dump.Reply.Attributes) > 0 {
-		g.structs(op, dumpOp, doRequest)
-		g.structs(op, dumpOp, doReply)
+		gss = append(gss, g.opStruct(op, dumpOp, doRequest)...)
+		gss = append(gss, g.opStruct(op, dumpOp, doReply)...)
 		g.method(op, dumpOp)
 	}
+
+	g.structs(gss)
 }
 
 // method generates a Do or Dump method for an Operation.
@@ -210,13 +213,57 @@ func (g *generator) method(op Operation, dod doOrDump) {
 	g.pf("")
 }
 
-// structs generates a struct for an Operation. Different attribute sets are
+// structs generates code for struct definitions.
+func (g *generator) structs(gss []gstruct) {
+	// Don't duplicate existing structs.
+	seen := make(map[string]struct{})
+
+	for _, gs := range gss {
+		if _, ok := seen[gs.Name]; ok {
+			continue
+		}
+
+		g.pf("// %s", gs.Doc)
+		g.pf("type %s struct {", gs.Name)
+
+		for _, f := range gs.Fields {
+			if f.Doc != "" {
+				g.pf("// %s", f.Doc)
+			}
+
+			if f.TODO {
+				g.pf("// TODO: field %q, type %q", f.Name, f.Type)
+			} else {
+				g.pf("%s %s", f.Name, f.Type)
+			}
+		}
+
+		g.pf("}")
+		g.pf("")
+
+		seen[gs.Name] = struct{}{}
+	}
+}
+
+// A gstruct is a struct which will be generated.
+type gstruct struct {
+	Name, Doc string
+	Fields    []field
+}
+
+// A field is a gstruct field.
+type field struct {
+	Name, Type, Doc string
+	TODO            bool
+}
+
+// opStruct generates a struct for an Operation. Different attribute sets are
 // used depending on the values for Do/Dump and Request/Reply.
-func (g *generator) structs(
+func (g *generator) opStruct(
 	op Operation,
 	dod doOrDump,
 	ror requestOrReply,
-) {
+) []gstruct {
 	// Narrow down which list of attributes we'll be generating from.
 	var list OperationAttributesList
 	{
@@ -243,35 +290,56 @@ func (g *generator) structs(
 
 	if len(list.Attributes) == 0 {
 		// The chosen list has no attributes, don't generate a struct.
-		return
+		return nil
 	}
 
-	g.pf("// %s is used with the %s method.", fullName, opName)
-	g.pf("type %s struct {", fullName)
-	for _, a := range g.attrs(op.AttributeSet, list.Attributes) {
-		if a.Description != "" {
-			g.pf("// %s", a.Description)
-		}
+	return []gstruct{{
+		Name:   fullName,
+		Doc:    fmt.Sprintf("%s is used with the %s method.", fullName, opName),
+		Fields: g.fields(g.attrs(op.AttributeSet, list.Attributes)),
+	}}
+}
+
+// TODO: recursion to get inner structs.
+
+// fields generates a set of struct fields for attributes.
+func (g *generator) fields(attrs []Attribute) []field {
+	var fields []field
+	for _, a := range attrs {
+		var (
+			typ  string
+			todo bool
+		)
 
 		// Generate the actual fields.
-		switch f := camelCase(a.Name); a.Type {
+		switch a.Type {
 		case "u8":
-			g.pf("%s uint8", f)
+			typ = "uint8"
 		case "u16":
-			g.pf("%s uint16", f)
+			typ = "uint16"
 		case "u32":
-			g.pf("%s uint32", f)
+			typ = "uint32"
 		case "u64":
-			g.pf("%s uint64", f)
+			typ = "uint64"
 		case "nul-string":
-			g.pf("%s string", f)
+			typ = "string"
+		case "array-nest":
+			typ = "[]" + camelCase(a.NestedAttributes)
+			todo = true
 		default:
-			g.pf("// TODO: field %q, type %q", f, a.Type)
+			typ = a.Type
+			todo = true
 		}
+
+		fields = append(fields, field{
+			Name: camelCase(a.Name),
+			Type: typ,
+			Doc:  a.Description,
+			TODO: todo,
+		})
 	}
 
-	g.pf("}")
-	g.pf("")
+	return fields
 }
 
 // encoder generates a netlink attribute encoder for a set of attribute
@@ -385,6 +453,9 @@ func (g *generator) decoder(op Operation, dod doOrDump) {
 			mkUint(64)
 		case "nul-string":
 			g.pf("%s = ad.String()", f)
+		case "array-nest":
+			typ = "[]" + camelCase(a.NestedAttributes)
+			g.pf("	// TODO: field %q, type %q", f, typ)
 		default:
 			g.pf("	// TODO: field %q, type %q", f, a.Type)
 		}
