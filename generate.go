@@ -151,23 +151,31 @@ func (g *generator) method(op Operation, dod doOrDump) {
 		oas = op.Dump
 	}
 
+	hasReply := len(oas.Reply.Attributes) > 0
+
 	{
 		s := dod.String() + camelCase(op.Name)
 
 		g.pf("// %s wraps the %q operation:", s, op.Name)
 		g.pf("// %s", op.Description)
 
-		// If there are no attributes, generate no parameter names.
+		// If there are no request attributes, generate no parameter names.
 		var params string
 		if len(oas.Request.Attributes) > 0 {
 			params = fmt.Sprintf("req %sRequest", s)
 		}
 
-		g.pf("func (c *Conn) %s(%s) (%s*%sReply, error) {", s, params, slice, s)
+		// If there are no reply attributes, generate no return value.
+		var ret string
+		if hasReply {
+			ret = fmt.Sprintf("%s*%sReply, ", slice, s)
+		}
+
+		g.pf("func (c *Conn) %s(%s) (%serror) {", s, params, ret)
 	}
 
 	// Generate the attribute encoder for arguments.
-	g.encoder(op, oas.Request)
+	g.encoder(op, oas.Request, hasReply)
 
 	// Use packed arguments in a genetlink message body to execute a command.
 	g.pf("msg := genetlink.Message{")
@@ -178,6 +186,16 @@ func (g *generator) method(op Operation, dod doOrDump) {
 	g.pf("	Data: b,")
 	g.pf("}")
 	g.pf("")
+
+	if !hasReply {
+		// Early exit and skip decoder when no replies.
+		g.pf("// No replies.")
+		g.pf("_, err = c.c.Execute(msg, c.f.ID, %s)", flags)
+		g.pf("return err")
+		g.pf("}")
+		g.pf("")
+		return
+	}
 
 	g.pf("msgs, err := c.c.Execute(msg, c.f.ID, %s)", flags)
 	g.pf("if err != nil {")
@@ -258,7 +276,7 @@ func (g *generator) structs(
 
 // encoder generates a netlink attribute encoder for a set of attribute
 // arguments for a command.
-func (g *generator) encoder(op Operation, list OperationAttributesList) {
+func (g *generator) encoder(op Operation, list OperationAttributesList, addNil bool) {
 	if len(list.Attributes) == 0 {
 		// Shortcut.
 		g.pf("// No attribute arguments.")
@@ -272,7 +290,7 @@ func (g *generator) encoder(op Operation, list OperationAttributesList) {
 		// Use the unix package const for each type, and field to fill in the
 		// arguments that are non-zero.
 		var (
-			typ = unixConst(g.asIndex[op.AttributeSet].NamePrefix + a.Name)
+			typ = unixConst(g.attrPrefix(op.AttributeSet) + a.Name)
 			f   = "req." + camelCase(a.Name)
 		)
 
@@ -305,7 +323,14 @@ func (g *generator) encoder(op Operation, list OperationAttributesList) {
 	g.pf("")
 	g.pf("b, err := ae.Encode()")
 	g.pf("if err != nil {")
-	g.pf("	return nil, err")
+
+	// Command may or may not return an extra value.
+	if addNil {
+		g.pf("return nil, err")
+	} else {
+		g.pf("return err")
+	}
+
 	g.pf("}")
 	g.pf("")
 }
@@ -341,7 +366,7 @@ func (g *generator) decoder(op Operation, dod doOrDump) {
 		// Use the unix package const for each type, and field to fill in the
 		// arguments that are non-zero.
 		var (
-			typ = unixConst(g.asIndex[op.AttributeSet].NamePrefix + a.Name)
+			typ = unixConst(g.attrPrefix(op.AttributeSet) + a.Name)
 			f   = "reply." + camelCase(a.Name)
 		)
 
@@ -421,6 +446,18 @@ func (g *generator) attrs(aset string, list []string) []Attribute {
 	}
 
 	return as
+}
+
+// attrPrefix returns the prefix for an attribute based on its AttributeSet
+// name.
+func (g *generator) attrPrefix(aset string) string {
+	if p := g.asIndex[aset].NamePrefix; p != "" {
+		// Specific prefix.
+		return p
+	}
+
+	// Default.
+	return fmt.Sprintf("%s-a-%s-", g.s.Name, aset)
 }
 
 // pf is short for "printf" and writes formatted data to g.w. All format strings

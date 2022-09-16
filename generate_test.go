@@ -42,6 +42,11 @@ func TestGenerateNlctrl(t *testing.T) {
 	}
 }
 
+func TestGenerateEthtool(t *testing.T) {
+	_ = generate(t, "ethtool")
+	// TODO!
+}
+
 // generate generates and executes Go code for the specified family using the
 // family's directory under testdata.
 func generate(t *testing.T, family string) []byte {

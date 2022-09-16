@@ -1,0 +1,120 @@
+# SPDX-License-Identifier: BSD-3-Clause
+
+name: ethtool
+
+protocol: genetlink-legacy
+
+description: |
+  Ethernet device configuration interface.
+
+uapi-header: linux/ethtool_netlink.h
+
+definitions:
+  -
+    type: const
+    name: ALTIFNAMSIZ
+    value: 128
+    header: linux/if.h
+
+attribute-sets:
+  -
+    name: header
+    attr-cnt-name: __ETHTOOL_A_HEADER_CNT
+    attributes:
+      -
+        name: dev-index
+        value: 1
+        type: u32
+      -
+        name: dev-name
+        type: nul-string
+        len: ALTIFNAMSIZ - 1
+      -
+        name: flags
+        type: u32
+  -
+    name: channels
+    attr-cnt-name: __ETHTOOL_A_CHANNELS_CNT
+    attributes:
+      -
+        name: header
+        value: 1
+        type: nest
+        nested-attributes: header
+      -
+        name: rx-max
+        type: u32
+      -
+        name: tx-max
+        type: u32
+      -
+        name: other-max
+        type: u32
+      -
+        name: combined-max
+        type: u32
+      -
+        name: rx-count
+        type: u32
+      -
+        name: tx-count
+        type: u32
+      -
+        name: other-count
+        type: u32
+      -
+        name: combined-count
+        type: u32
+
+operations:
+  enum-model: directional
+  name-prefix: ethtool-msg-
+  async-prefix: ethtool-msg-
+  list:
+    -
+      name: channels-get
+      value: 17
+      description: Get current and max supported number of channels.
+      attribute-set: channels
+      do:
+        request:
+          attributes:
+            - header
+        reply: &channel_reply
+          attributes:
+            - header
+            - rx-max
+            - tx-max
+            - other-max
+            - combined-max
+            - rx-count
+            - tx-count
+            - other-count
+            - combined-count
+      dump:
+        reply: *channel_reply
+
+    -
+      name: channels-ntf
+      description: Notification for device changing its number of channels.
+      notify: channels-get
+      mcgrp: monitor
+
+    -
+      name: channels-set
+      description: Set number of channels.
+      attribute-set: channels
+      do:
+        request:
+          attributes:
+            - header
+            - rx-count
+            - tx-count
+            - other-count
+            - combined-count
+
+mcast-groups:
+  list:
+    -
+      name: monitor
+      c-define-name: ethtool-mcgrp-monitor-name
