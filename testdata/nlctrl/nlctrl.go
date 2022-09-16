@@ -172,17 +172,27 @@ type DoGetfamilyRequest struct {
 	FamilyName string
 }
 
+type Operation struct {
+	Id    uint32
+	Flags uint32
+}
+
+type McastGroup struct {
+	Id   uint32
+	Name string
+}
+
 // DoGetfamilyReply is used with the DoGetfamily method.
 type DoGetfamilyReply struct {
 	// Numerical identifier of the family.
 	FamilyId uint16
 	// String identifier of the family. Guaranteed to be unique.
-	FamilyName string
-	Version    uint32
-	Hdrsize    uint32
-	Maxattr    uint32
-	// TODO: field "Ops", type "[]Operation"
-	// TODO: field "McastGroups", type "[]McastGroup"
+	FamilyName  string
+	Version     uint32
+	Hdrsize     uint32
+	Maxattr     uint32
+	Ops         []Operation
+	McastGroups []McastGroup
 }
 
 // DumpGetfamilyReply is used with the DumpGetfamily method.
@@ -190,12 +200,12 @@ type DumpGetfamilyReply struct {
 	// Numerical identifier of the family.
 	FamilyId uint16
 	// String identifier of the family. Guaranteed to be unique.
-	FamilyName string
-	Version    uint32
-	Hdrsize    uint32
-	Maxattr    uint32
-	// TODO: field "Ops", type "[]Operation"
-	// TODO: field "McastGroups", type "[]McastGroup"
+	FamilyName  string
+	Version     uint32
+	Hdrsize     uint32
+	Maxattr     uint32
+	Ops         []Operation
+	McastGroups []McastGroup
 }
 
 // DumpGetpolicy wraps the "getpolicy" operation:

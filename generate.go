@@ -293,17 +293,36 @@ func (g *generator) opStruct(
 		return nil
 	}
 
-	return []gstruct{{
+	attrs := g.attrs(op.AttributeSet, list.Attributes)
+
+	// Generate nested structures before the top-level scalar fields.
+	//
+	// TODO(mdlayher): I know recursion is inevitable here but I'm gonna keep it
+	// simple until we run into that case.
+	var gss []gstruct
+	for _, a := range attrs {
+		if a.Type != "array-nest" {
+			continue
+		}
+
+		gss = append(gss, gstruct{
+			Name:   camelCase(a.NestedAttributes),
+			Doc:    a.Description,
+			Fields: g.scalarFields(g.asIndex[a.NestedAttributes].Attributes),
+		})
+	}
+
+	gss = append(gss, gstruct{
 		Name:   fullName,
 		Doc:    fmt.Sprintf("%s is used with the %s method.", fullName, opName),
-		Fields: g.fields(g.attrs(op.AttributeSet, list.Attributes)),
-	}}
+		Fields: g.scalarFields(attrs),
+	})
+
+	return gss
 }
 
-// TODO: recursion to get inner structs.
-
-// fields generates a set of struct fields for attributes.
-func (g *generator) fields(attrs []Attribute) []field {
+// scalarFields generates a set of struct scalarFields for attributes.
+func (g *generator) scalarFields(attrs []Attribute) []field {
 	var fields []field
 	for _, a := range attrs {
 		var (
@@ -324,8 +343,8 @@ func (g *generator) fields(attrs []Attribute) []field {
 		case "nul-string":
 			typ = "string"
 		case "array-nest":
+			// Assumes nested structures are already generated.
 			typ = "[]" + camelCase(a.NestedAttributes)
-			todo = true
 		default:
 			typ = a.Type
 			todo = true
