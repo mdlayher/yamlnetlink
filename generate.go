@@ -121,14 +121,14 @@ func (g *generator) op(op Operation) {
 	// least one attribute.
 	var gss []gstruct
 	if len(op.Do.Request.Attributes) > 0 || len(op.Do.Reply.Attributes) > 0 {
-		gss = append(gss, g.opStruct(op, doOp, doRequest)...)
-		gss = append(gss, g.opStruct(op, doOp, doReply)...)
+		gss = append(gss, g.opStruct(op, doOp, doRequest))
+		gss = append(gss, g.opStruct(op, doOp, doReply))
 		g.method(op, doOp)
 	}
 
 	if len(op.Dump.Request.Attributes) > 0 || len(op.Dump.Reply.Attributes) > 0 {
-		gss = append(gss, g.opStruct(op, dumpOp, doRequest)...)
-		gss = append(gss, g.opStruct(op, dumpOp, doReply)...)
+		gss = append(gss, g.opStruct(op, dumpOp, doRequest))
+		gss = append(gss, g.opStruct(op, dumpOp, doReply))
 		g.method(op, dumpOp)
 	}
 
@@ -215,12 +215,18 @@ func (g *generator) method(op Operation, dod doOrDump) {
 
 // structs generates code for struct definitions.
 func (g *generator) structs(gss []gstruct) {
-	// Don't duplicate existing structs.
-	seen := make(map[string]struct{})
+	var (
+		// Don't duplicate structs that were previously generated.
+		seen = make(map[string]struct{})
 
-	for _, gs := range gss {
-		if _, ok := seen[gs.Name]; ok {
-			continue
+		// walk recursively walks a gstruct and its nested structs.
+		walk func(gs gstruct)
+	)
+
+	walk = func(gs gstruct) {
+		if _, ok := seen[gs.Name]; gs.Name == "" || ok {
+			// Already seen or we want to skip generating a zero struct.
+			return
 		}
 
 		g.pf("// %s", gs.Doc)
@@ -241,7 +247,15 @@ func (g *generator) structs(gss []gstruct) {
 		g.pf("}")
 		g.pf("")
 
+		// We've generated this one, walk its children.
 		seen[gs.Name] = struct{}{}
+		for _, ngs := range gs.Nested {
+			walk(ngs)
+		}
+	}
+
+	for _, gs := range gss {
+		walk(gs)
 	}
 }
 
@@ -249,6 +263,7 @@ func (g *generator) structs(gss []gstruct) {
 type gstruct struct {
 	Name, Doc string
 	Fields    []field
+	Nested    []gstruct
 }
 
 // A field is a gstruct field.
@@ -263,7 +278,7 @@ func (g *generator) opStruct(
 	op Operation,
 	dod doOrDump,
 	ror requestOrReply,
-) []gstruct {
+) gstruct {
 	// Narrow down which list of attributes we'll be generating from.
 	var list OperationAttributesList
 	{
@@ -290,47 +305,34 @@ func (g *generator) opStruct(
 
 	if len(list.Attributes) == 0 {
 		// The chosen list has no attributes, don't generate a struct.
-		return nil
+		return gstruct{}
 	}
 
-	attrs := g.attrs(op.AttributeSet, list.Attributes)
-
-	// Generate nested structures before the top-level scalar fields.
-	//
-	// TODO(mdlayher): I know recursion is inevitable here but I'm gonna keep it
-	// simple until we run into that case.
-	var gss []gstruct
-	for _, a := range attrs {
-		if a.Type != "array-nest" {
-			continue
-		}
-
-		gss = append(gss, gstruct{
-			Name:   camelCase(a.NestedAttributes),
-			Doc:    a.Description,
-			Fields: g.scalarFields(g.asIndex[a.NestedAttributes].Attributes),
-		})
+	gs := gstruct{
+		Name: fullName,
+		Doc:  fmt.Sprintf("%s is used with the %s method.", fullName, opName),
 	}
 
-	gss = append(gss, gstruct{
-		Name:   fullName,
-		Doc:    fmt.Sprintf("%s is used with the %s method.", fullName, opName),
-		Fields: g.scalarFields(attrs),
-	})
+	// Walk the struct's attributes to get its fields and nested structs.
+	gs.Fields, gs.Nested = g.walkAttributes(g.attrs(op.AttributeSet, list.Attributes))
 
-	return gss
+	return gs
 }
 
-// scalarFields generates a set of struct scalarFields for attributes.
-func (g *generator) scalarFields(attrs []Attribute) []field {
-	var fields []field
+// walkAttributes generates a set of fields and nested structs for a given set
+// of attributes.
+func (g *generator) walkAttributes(attrs []Attribute) ([]field, []gstruct) {
+	var (
+		fields []field
+		gss    []gstruct
+	)
+
 	for _, a := range attrs {
 		var (
 			typ  string
 			todo bool
 		)
 
-		// Generate the actual fields.
 		switch a.Type {
 		case "u8":
 			typ = "uint8"
@@ -343,8 +345,22 @@ func (g *generator) scalarFields(attrs []Attribute) []field {
 		case "nul-string":
 			typ = "string"
 		case "array-nest":
-			// Assumes nested structures are already generated.
+			// For arrays we generate an array of a new struct type. Walk the
+			// attribute set for this array and generate nested structs as
+			// needed.
 			typ = "[]" + camelCase(a.NestedAttributes)
+			gs := gstruct{Name: camelCase(a.NestedAttributes)}
+
+			if a.Description != "" {
+				gs.Doc = a.Description
+			} else {
+				gs.Doc = fmt.Sprintf("%s contains nested netlink attributes.", gs.Name)
+			}
+
+			// Fetch fields and nested structs for entire set.
+			gs.Fields, gs.Nested = g.walkAttributes(g.attrs(a.NestedAttributes, nil))
+
+			gss = append(gss, gs)
 		default:
 			typ = a.Type
 			todo = true
@@ -358,7 +374,7 @@ func (g *generator) scalarFields(attrs []Attribute) []field {
 		})
 	}
 
-	return fields
+	return fields, gss
 }
 
 // encoder generates a netlink attribute encoder for a set of attribute
@@ -515,8 +531,7 @@ func (g *generator) attrs(aset string, list []string) []Attribute {
 	}
 
 	if len(list) == 0 {
-		// Shortcut, no attributes wanted.
-		return nil
+		return g.asIndex[aset].Attributes
 	}
 
 	idx := make(map[string]Attribute)

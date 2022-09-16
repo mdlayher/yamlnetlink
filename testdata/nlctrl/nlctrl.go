@@ -172,16 +172,6 @@ type DoGetfamilyRequest struct {
 	FamilyName string
 }
 
-type Operation struct {
-	Id    uint32
-	Flags uint32
-}
-
-type McastGroup struct {
-	Id   uint32
-	Name string
-}
-
 // DoGetfamilyReply is used with the DoGetfamily method.
 type DoGetfamilyReply struct {
 	// Numerical identifier of the family.
@@ -193,6 +183,18 @@ type DoGetfamilyReply struct {
 	Maxattr     uint32
 	Ops         []Operation
 	McastGroups []McastGroup
+}
+
+// Operation contains nested netlink attributes.
+type Operation struct {
+	Id    uint32
+	Flags uint32
+}
+
+// McastGroup contains nested netlink attributes.
+type McastGroup struct {
+	Id   uint32
+	Name string
 }
 
 // DumpGetfamilyReply is used with the DumpGetfamily method.
