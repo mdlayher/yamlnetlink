@@ -88,47 +88,33 @@ func (c *Conn) DoGetfamily(req DoGetfamilyRequest) (*DoGetfamilyReply, error) {
 			case unix.CTRL_ATTR_MAXATTR:
 				reply.Maxattr = ad.Uint32()
 			case unix.CTRL_ATTR_OPS:
-				ad.Nested(func(arr *netlink.AttributeDecoder) error {
-					for arr.Next() {
-						arr.Nested(func(ad *netlink.AttributeDecoder) error {
-							var nest Operation
-							for ad.Next() {
-								switch ad.Type() {
-								case unix.CTRL_ATTR_OP_ID:
-									nest.Id = ad.Uint32()
-								case unix.CTRL_ATTR_OP_FLAGS:
-									nest.Flags = ad.Uint32()
-								}
-							}
-
-							reply.Ops = append(reply.Ops, nest)
-							return nil
-						})
-
+				ad.NestedArray(func(ad *netlink.AttributeDecoder) error {
+					var nest Operation
+					for ad.Next() {
+						switch ad.Type() {
+						case unix.CTRL_ATTR_OP_ID:
+							nest.Id = ad.Uint32()
+						case unix.CTRL_ATTR_OP_FLAGS:
+							nest.Flags = ad.Uint32()
+						}
 					}
 
+					reply.Ops = append(reply.Ops, nest)
 					return nil
 				})
 			case unix.CTRL_ATTR_MCAST_GROUPS:
-				ad.Nested(func(arr *netlink.AttributeDecoder) error {
-					for arr.Next() {
-						arr.Nested(func(ad *netlink.AttributeDecoder) error {
-							var nest McastGroup
-							for ad.Next() {
-								switch ad.Type() {
-								case unix.CTRL_ATTR_MCAST_GRP_ID:
-									nest.Id = ad.Uint32()
-								case unix.CTRL_ATTR_MCAST_GRP_NAME:
-									nest.Name = ad.String()
-								}
-							}
-
-							reply.McastGroups = append(reply.McastGroups, nest)
-							return nil
-						})
-
+				ad.NestedArray(func(ad *netlink.AttributeDecoder) error {
+					var nest McastGroup
+					for ad.Next() {
+						switch ad.Type() {
+						case unix.CTRL_ATTR_MCAST_GRP_ID:
+							nest.Id = ad.Uint32()
+						case unix.CTRL_ATTR_MCAST_GRP_NAME:
+							nest.Name = ad.String()
+						}
 					}
 
+					reply.McastGroups = append(reply.McastGroups, nest)
 					return nil
 				})
 			}
@@ -188,47 +174,33 @@ func (c *Conn) DumpGetfamily() ([]*DumpGetfamilyReply, error) {
 			case unix.CTRL_ATTR_MAXATTR:
 				reply.Maxattr = ad.Uint32()
 			case unix.CTRL_ATTR_OPS:
-				ad.Nested(func(arr *netlink.AttributeDecoder) error {
-					for arr.Next() {
-						arr.Nested(func(ad *netlink.AttributeDecoder) error {
-							var nest Operation
-							for ad.Next() {
-								switch ad.Type() {
-								case unix.CTRL_ATTR_OP_ID:
-									nest.Id = ad.Uint32()
-								case unix.CTRL_ATTR_OP_FLAGS:
-									nest.Flags = ad.Uint32()
-								}
-							}
-
-							reply.Ops = append(reply.Ops, nest)
-							return nil
-						})
-
+				ad.NestedArray(func(ad *netlink.AttributeDecoder) error {
+					var nest Operation
+					for ad.Next() {
+						switch ad.Type() {
+						case unix.CTRL_ATTR_OP_ID:
+							nest.Id = ad.Uint32()
+						case unix.CTRL_ATTR_OP_FLAGS:
+							nest.Flags = ad.Uint32()
+						}
 					}
 
+					reply.Ops = append(reply.Ops, nest)
 					return nil
 				})
 			case unix.CTRL_ATTR_MCAST_GROUPS:
-				ad.Nested(func(arr *netlink.AttributeDecoder) error {
-					for arr.Next() {
-						arr.Nested(func(ad *netlink.AttributeDecoder) error {
-							var nest McastGroup
-							for ad.Next() {
-								switch ad.Type() {
-								case unix.CTRL_ATTR_MCAST_GRP_ID:
-									nest.Id = ad.Uint32()
-								case unix.CTRL_ATTR_MCAST_GRP_NAME:
-									nest.Name = ad.String()
-								}
-							}
-
-							reply.McastGroups = append(reply.McastGroups, nest)
-							return nil
-						})
-
+				ad.NestedArray(func(ad *netlink.AttributeDecoder) error {
+					var nest McastGroup
+					for ad.Next() {
+						switch ad.Type() {
+						case unix.CTRL_ATTR_MCAST_GRP_ID:
+							nest.Id = ad.Uint32()
+						case unix.CTRL_ATTR_MCAST_GRP_NAME:
+							nest.Name = ad.String()
+						}
 					}
 
+					reply.McastGroups = append(reply.McastGroups, nest)
 					return nil
 				})
 			}

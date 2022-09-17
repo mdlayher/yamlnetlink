@@ -543,17 +543,12 @@ func (g *generator) decoderCases(receiver, aset string, attrs []Attribute) {
 			g.pf("	return nil")
 			g.pf("})")
 		case "array-nest":
-			// A netlink array is multiply nested containing the same object at
-			// each index. For now we have to give the innermost decoder the
-			// same name "ad" since the switch cases are hardcoded.
 			const tmp = "nest"
 
-			g.pf("ad.Nested(func(arr *netlink.AttributeDecoder) error {")
-			g.pf("	for arr.Next() {")
-			g.pf("		arr.Nested(func(ad *netlink.AttributeDecoder) error {")
-			g.pf("			var %s %s", tmp, camelCase(a.NestedAttributes))
-			g.pf("			for ad.Next() {")
-			g.pf("				switch ad.Type() {")
+			g.pf("ad.NestedArray(func(ad *netlink.AttributeDecoder) error {")
+			g.pf("	var %s %s", tmp, camelCase(a.NestedAttributes))
+			g.pf("	for ad.Next() {")
+			g.pf("		switch ad.Type() {")
 
 			g.decoderCases(
 				tmp,
@@ -561,16 +556,11 @@ func (g *generator) decoderCases(receiver, aset string, attrs []Attribute) {
 				g.attrs(a.NestedAttributes, nil),
 			)
 
-			g.pf("				}")
-			g.pf("			}")
-			g.pf("")
-			g.pf("			%s = append(%s, %s)", field, field, tmp)
-			g.pf("			return nil")
-			g.pf("		})")
-			g.pf("")
+			g.pf("		}")
 			g.pf("	}")
 			g.pf("")
-			g.pf("return nil")
+			g.pf("	%s = append(%s, %s)", field, field, tmp)
+			g.pf("	return nil")
 			g.pf("})")
 		default:
 			g.pf("	// TODO: field %q, type %q", field, a.Type)
