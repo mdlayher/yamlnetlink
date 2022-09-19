@@ -42,7 +42,19 @@ func (c *Conn) Close() error { return c.c.Close() }
 // Get current and max supported number of channels.
 func (c *Conn) DoChannelsGet(req DoChannelsGetRequest) (*DoChannelsGetReply, error) {
 	ae := netlink.NewAttributeEncoder()
-	// TODO: field "req.Header", type "nest"
+	ae.Nested(unix.ETHTOOL_A_CHANNELS_HEADER, func(ae *netlink.AttributeEncoder) error {
+		if req.Header.DevIndex != 0 {
+			ae.Uint32(unix.ETHTOOL_A_HEADER_DEV_INDEX, req.Header.DevIndex)
+		}
+		if req.Header.DevName != "" {
+			ae.String(unix.ETHTOOL_A_HEADER_DEV_NAME, req.Header.DevName)
+		}
+		if req.Header.Flags != 0 {
+			ae.Uint32(unix.ETHTOOL_A_HEADER_FLAGS, req.Header.Flags)
+		}
+
+		return nil
+	})
 
 	b, err := ae.Encode()
 	if err != nil {
@@ -235,7 +247,19 @@ type DumpChannelsGetReply struct {
 // Set number of channels.
 func (c *Conn) DoChannelsSet(req DoChannelsSetRequest) error {
 	ae := netlink.NewAttributeEncoder()
-	// TODO: field "req.Header", type "nest"
+	ae.Nested(unix.ETHTOOL_A_CHANNELS_HEADER, func(ae *netlink.AttributeEncoder) error {
+		if req.Header.DevIndex != 0 {
+			ae.Uint32(unix.ETHTOOL_A_HEADER_DEV_INDEX, req.Header.DevIndex)
+		}
+		if req.Header.DevName != "" {
+			ae.String(unix.ETHTOOL_A_HEADER_DEV_NAME, req.Header.DevName)
+		}
+		if req.Header.Flags != 0 {
+			ae.Uint32(unix.ETHTOOL_A_HEADER_FLAGS, req.Header.Flags)
+		}
+
+		return nil
+	})
 	if req.RxCount != 0 {
 		ae.Uint32(unix.ETHTOOL_A_CHANNELS_RX_COUNT, req.RxCount)
 	}

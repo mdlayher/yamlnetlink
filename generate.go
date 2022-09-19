@@ -393,12 +393,33 @@ func (g *generator) encoder(op Operation, list OperationAttributesList, addNil b
 	}
 
 	g.pf("ae := netlink.NewAttributeEncoder()")
-	for _, a := range g.attrs(op.AttributeSet, list.Attributes) {
+
+	// Begin generating switch cases to decode into receiver.
+	g.encoderCases("req", op.AttributeSet, g.attrs(op.AttributeSet, list.Attributes))
+
+	// Finally pack the attributes.
+	g.pf("")
+	g.pf("b, err := ae.Encode()")
+	g.pf("if err != nil {")
+
+	// Command may or may not return an extra value.
+	if addNil {
+		g.pf("return nil, err")
+	} else {
+		g.pf("return err")
+	}
+
+	g.pf("}")
+	g.pf("")
+}
+
+func (g *generator) encoderCases(receiver, aset string, attrs []Attribute) {
+	for _, a := range attrs {
 		// Use the unix package const for each type, and field to fill in the
 		// arguments that are non-zero.
 		var (
-			typ = unixConst(g.attrPrefix(op.AttributeSet) + a.Name)
-			f   = "req." + camelCase(a.Name)
+			typ = unixConst(g.attrPrefix(aset) + a.Name)
+			f   = receiver + "." + camelCase(a.Name)
 		)
 
 		// mkUint generates a uint* case.
@@ -421,25 +442,18 @@ func (g *generator) encoder(op Operation, list OperationAttributesList, addNil b
 			g.pf(`if %s != "" {`, f)
 			g.pf("	ae.String(%s, %s)", typ, f)
 			g.pf("}")
+		case "nest":
+			g.pf("ae.Nested(%s, func(ae *netlink.AttributeEncoder) error {", typ)
+
+			g.encoderCases(f, a.NestedAttributes, g.attrs(a.NestedAttributes, nil))
+
+			g.pf("")
+			g.pf("	return nil")
+			g.pf("})")
 		default:
 			g.pf("	// TODO: field %q, type %q", f, a.Type)
 		}
 	}
-
-	// Finally pack the attributes.
-	g.pf("")
-	g.pf("b, err := ae.Encode()")
-	g.pf("if err != nil {")
-
-	// Command may or may not return an extra value.
-	if addNil {
-		g.pf("return nil, err")
-	} else {
-		g.pf("return err")
-	}
-
-	g.pf("}")
-	g.pf("")
 }
 
 // decoder generates a netlink attribute decoder loop to to iterate over reply
