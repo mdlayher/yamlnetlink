@@ -549,6 +549,7 @@ func (g *generator) decoderCases(receiver, aset string, attrs []Attribute) {
 			const tmp = "nest"
 
 			g.pf("ad.Nested(func(arr *netlink.AttributeDecoder) error {")
+			g.pf("	%s = make([]%s, 0, arr.Len())", field, camelCase(a.NestedAttributes))
 			g.pf("	for arr.Next() {")
 			g.pf("		arr.Nested(func(ad *netlink.AttributeDecoder) error {")
 			g.pf("			var %s %s", tmp, camelCase(a.NestedAttributes))

@@ -89,6 +89,7 @@ func (c *Conn) DoGetfamily(req DoGetfamilyRequest) (*DoGetfamilyReply, error) {
 				reply.Maxattr = ad.Uint32()
 			case unix.CTRL_ATTR_OPS:
 				ad.Nested(func(arr *netlink.AttributeDecoder) error {
+					reply.Ops = make([]Operation, 0, arr.Len())
 					for arr.Next() {
 						arr.Nested(func(ad *netlink.AttributeDecoder) error {
 							var nest Operation
@@ -111,6 +112,7 @@ func (c *Conn) DoGetfamily(req DoGetfamilyRequest) (*DoGetfamilyReply, error) {
 				})
 			case unix.CTRL_ATTR_MCAST_GROUPS:
 				ad.Nested(func(arr *netlink.AttributeDecoder) error {
+					reply.McastGroups = make([]McastGroup, 0, arr.Len())
 					for arr.Next() {
 						arr.Nested(func(ad *netlink.AttributeDecoder) error {
 							var nest McastGroup
@@ -189,6 +191,7 @@ func (c *Conn) DumpGetfamily() ([]*DumpGetfamilyReply, error) {
 				reply.Maxattr = ad.Uint32()
 			case unix.CTRL_ATTR_OPS:
 				ad.Nested(func(arr *netlink.AttributeDecoder) error {
+					reply.Ops = make([]Operation, 0, arr.Len())
 					for arr.Next() {
 						arr.Nested(func(ad *netlink.AttributeDecoder) error {
 							var nest Operation
@@ -211,6 +214,7 @@ func (c *Conn) DumpGetfamily() ([]*DumpGetfamilyReply, error) {
 				})
 			case unix.CTRL_ATTR_MCAST_GROUPS:
 				ad.Nested(func(arr *netlink.AttributeDecoder) error {
+					reply.McastGroups = make([]McastGroup, 0, arr.Len())
 					for arr.Next() {
 						arr.Nested(func(ad *netlink.AttributeDecoder) error {
 							var nest McastGroup
