@@ -16,7 +16,7 @@ import (
 type Spec struct {
 	Name          string         `yaml:"name"`
 	Protocol      string         `yaml:"protocol"`
-	Description   string         `yaml:"description"`
+	Doc           string         `yaml:"doc"`
 	UAPIHeader    string         `yaml:"uapi-header"`
 	AttributeSets []AttributeSet `yaml:"attribute-sets"`
 	Operations    Operations     `yaml:"operations"`
@@ -35,13 +35,13 @@ func Parse(r io.Reader) (*Spec, error) {
 	return &s, nil
 }
 
-// sanitize tidies a Spec's description strings in-place.
+// sanitize tidies a Spec's documentation strings in-place.
 func (s *Spec) sanitize() {
-	sanitize(&s.Description)
+	sanitize(&s.Doc)
 
 	for i := range s.AttributeSets {
 		for j := range s.AttributeSets[i].Attributes {
-			sanitize(&s.AttributeSets[i].Attributes[j].Description)
+			sanitize(&s.AttributeSets[i].Attributes[j].Doc)
 		}
 	}
 }
@@ -59,7 +59,7 @@ type Attribute struct {
 	Type             string   `yaml:"type"`
 	TypeValue        []string `yaml:"type-value"`
 	Len              string   `yaml:"len"`
-	Description      string   `yaml:"description"`
+	Doc              string   `yaml:"doc"`
 	NestedAttributes string   `yaml:"nested-attributes"`
 }
 
@@ -73,7 +73,7 @@ type Operations struct {
 // An Operation describes a single netlink request/reply operation.
 type Operation struct {
 	Name         string              `yaml:"name"`
-	Description  string              `yaml:"description"`
+	Doc          string              `yaml:"doc"`
 	AttributeSet string              `yaml:"attribute-set"`
 	DontValidate []string            `yaml:"dont-validate"`
 	Notify       string              `yaml:"notify"`

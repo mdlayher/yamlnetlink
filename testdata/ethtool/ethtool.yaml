@@ -4,7 +4,7 @@ name: ethtool
 
 protocol: genetlink-legacy
 
-description: |
+doc: |
   Ethernet device configuration interface.
 
 uapi-header: linux/ethtool_netlink.h
@@ -74,7 +74,7 @@ operations:
     -
       name: channels-get
       value: 17
-      description: Get current and max supported number of channels.
+      doc: Get current and max supported number of channels.
       attribute-set: channels
       do:
         request:
@@ -96,13 +96,13 @@ operations:
 
     -
       name: channels-ntf
-      description: Notification for device changing its number of channels.
+      doc: Notification for device changing its number of channels.
       notify: channels-get
       mcgrp: monitor
 
     -
       name: channels-set
-      description: Set number of channels.
+      doc: Set number of channels.
       attribute-set: channels
       do:
         request:

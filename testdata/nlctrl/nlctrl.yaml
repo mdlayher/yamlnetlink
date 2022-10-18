@@ -2,7 +2,7 @@ name: nlctrl
 
 protocol: genetlink-legacy
 
-description: |
+doc: |
   Generic netlink control protocol. Interface to query information about
   generic netlink families registered in the kernel - their names, ids,
   accepted messages and attributes.
@@ -17,13 +17,13 @@ attribute-sets:
       -
         name: family-id
         type: u16
-        description: |
+        doc: |
             Numerical identifier of the family.
       -
         name: family-name
         type: nul-string
         len: GENL_NAMSIZ - 1
-        description: |
+        doc: |
             String identifier of the family. Guaranteed to be unique.
       -
         name: version
@@ -129,7 +129,7 @@ operations:
   list:
     -
       name: getfamily
-      description: Get information about genetlink family.
+      doc: Get information about genetlink family.
       attribute-set: main
       dont-validate: [ strict, dump ]
 
@@ -151,23 +151,23 @@ operations:
         reply: *getfamily-do-reply
     -
       name: newfamily
-      description: Notification for new families being registered.
+      doc: Notification for new families being registered.
       notify: getfamily
     -
       name: delfamily
-      description: Notification for families being unregistered.
+      doc: Notification for families being unregistered.
       notify: getfamily
     -
       name: newmcast-grp
-      description: Notification for new multicast groups.
+      doc: Notification for new multicast groups.
       notify: getfamily
     -
       name: delmcast-grp
-      description: Notification for deleted multicast groups.
+      doc: Notification for deleted multicast groups.
       notify: getfamily
     -
       name: getpolicy
-      description: Get attribute policy for a genetlink family.
+      doc: Get attribute policy for a genetlink family.
       attribute-set: main
 
       dump:
