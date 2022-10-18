@@ -23,25 +23,25 @@ func TestParse(t *testing.T) {
 // family, for use in tests.
 func nlctrl() *yamlnetlink.Spec {
 	return &yamlnetlink.Spec{
-		Name:        "nlctrl",
-		Protocol:    "genetlink-legacy",
-		Description: "Generic netlink control protocol. Interface to query information about generic netlink families registered in the kernel - their names, ids, accepted messages and attributes.",
-		UAPIHeader:  "linux/genetlink.h",
+		Name:       "nlctrl",
+		Protocol:   "genetlink-legacy",
+		Doc:        "Generic netlink control protocol. Interface to query information about generic netlink families registered in the kernel - their names, ids, accepted messages and attributes.",
+		UAPIHeader: "linux/genetlink.h",
 		AttributeSets: []yamlnetlink.AttributeSet{
 			{
 				Name:       "main",
 				NamePrefix: "ctrl-attr-",
 				Attributes: []yamlnetlink.Attribute{
 					{
-						Name:        "family-id",
-						Type:        "u16",
-						Description: "Numerical identifier of the family.",
+						Name: "family-id",
+						Type: "u16",
+						Doc:  "Numerical identifier of the family.",
 					},
 					{
-						Name:        "family-name",
-						Type:        "nul-string",
-						Len:         "GENL_NAMSIZ - 1",
-						Description: "String identifier of the family. Guaranteed to be unique.",
+						Name: "family-name",
+						Type: "nul-string",
+						Len:  "GENL_NAMSIZ - 1",
+						Doc:  "String identifier of the family. Guaranteed to be unique.",
 					},
 					{
 						Name: "version",
@@ -181,7 +181,7 @@ func nlctrl() *yamlnetlink.Spec {
 			List: []yamlnetlink.Operation{
 				{
 					Name:         "getfamily",
-					Description:  "Get information about genetlink family.",
+					Doc:          "Get information about genetlink family.",
 					AttributeSet: "main",
 					DontValidate: []string{"strict", "dump"},
 
@@ -204,28 +204,28 @@ func nlctrl() *yamlnetlink.Spec {
 					},
 				},
 				{
-					Name:        "newfamily",
-					Description: "Notification for new families being registered.",
-					Notify:      "getfamily",
+					Name:   "newfamily",
+					Doc:    "Notification for new families being registered.",
+					Notify: "getfamily",
 				},
 				{
-					Name:        "delfamily",
-					Description: "Notification for families being unregistered.",
-					Notify:      "getfamily",
+					Name:   "delfamily",
+					Doc:    "Notification for families being unregistered.",
+					Notify: "getfamily",
 				},
 				{
-					Name:        "newmcast-grp",
-					Description: "Notification for new multicast groups.",
-					Notify:      "getfamily",
+					Name:   "newmcast-grp",
+					Doc:    "Notification for new multicast groups.",
+					Notify: "getfamily",
 				},
 				{
-					Name:        "delmcast-grp",
-					Description: "Notification for deleted multicast groups.",
-					Notify:      "getfamily",
+					Name:   "delmcast-grp",
+					Doc:    "Notification for deleted multicast groups.",
+					Notify: "getfamily",
 				},
 				{
 					Name:         "getpolicy",
-					Description:  "Get attribute policy for a genetlink family.",
+					Doc:          "Get attribute policy for a genetlink family.",
 					AttributeSet: "main",
 					Dump: yamlnetlink.OperationAttributes{
 						Request: yamlnetlink.OperationAttributesList{
@@ -248,7 +248,7 @@ name: nlctrl
 
 protocol: genetlink-legacy
 
-description: |
+doc: |
   Generic netlink control protocol. Interface to query information about
   generic netlink families registered in the kernel - their names, ids,
   accepted messages and attributes.
@@ -263,13 +263,13 @@ attribute-sets:
       -
         name: family-id
         type: u16
-        description: |
+        doc: |
             Numerical identifier of the family.
       -
         name: family-name
         type: nul-string
         len: GENL_NAMSIZ - 1
-        description: |
+        doc: |
             String identifier of the family. Guaranteed to be unique.
       -
         name: version
@@ -375,7 +375,7 @@ operations:
   list:
     -
       name: getfamily
-      description: Get information about genetlink family.
+      doc: Get information about genetlink family.
       attribute-set: main
       dont-validate: [ strict, dump ]
 
@@ -397,23 +397,23 @@ operations:
         reply: *getfamily-do-reply
     -
       name: newfamily
-      description: Notification for new families being registered.
+      doc: Notification for new families being registered.
       notify: getfamily
     -
       name: delfamily
-      description: Notification for families being unregistered.
+      doc: Notification for families being unregistered.
       notify: getfamily
     -
       name: newmcast-grp
-      description: Notification for new multicast groups.
+      doc: Notification for new multicast groups.
       notify: getfamily
     -
       name: delmcast-grp
-      description: Notification for deleted multicast groups.
+      doc: Notification for deleted multicast groups.
       notify: getfamily
     -
       name: getpolicy
-      description: Get attribute policy for a genetlink family.
+      doc: Get attribute policy for a genetlink family.
       attribute-set: main
 
       dump:
